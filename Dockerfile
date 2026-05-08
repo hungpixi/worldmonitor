@@ -29,11 +29,7 @@ RUN npx tsc && npx vite build
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM node:22-alpine AS final
 
-# nginx + supervisord
-RUN apk add --no-cache nginx supervisor gettext && \
-    mkdir -p /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi \
-             /tmp/nginx-uwsgi /tmp/nginx-scgi /var/log/supervisor && \
-    addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
@@ -50,24 +46,16 @@ COPY --from=builder /app/data ./data
 # Built frontend static files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Nginx + supervisord configs
-COPY docker/nginx.conf /etc/nginx/nginx.conf.template
-COPY docker/supervisord.conf /etc/supervisor/conf.d/worldmonitor.conf
-COPY docker/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY docker/dokploy-server.mjs ./dokploy-server.mjs
 
 # Ensure writable dirs for non-root
-RUN chown -R appuser:appgroup /app /tmp/nginx-client-body /tmp/nginx-proxy \
-    /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi /var/log/supervisor \
-    /var/lib/nginx /var/log/nginx
+RUN chown -R appuser:appgroup /app
 
 USER appuser
 
 EXPOSE 8080
 
-# Healthcheck via nginx. The API health route can block on optional Redis
-# wiring during cold start, so keep container readiness tied to static serving.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
   CMD wget -qO- http://localhost:8080/ >/dev/null || exit 1
 
-CMD ["/app/entrypoint.sh"]
+CMD ["node", "/app/dokploy-server.mjs"]
