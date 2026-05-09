@@ -3,7 +3,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { spawn } from 'node:child_process';
 
-const root = '/usr/share/nginx/html';
+const root = process.env.STATIC_ROOT || (existsSync('/usr/share/nginx/html') ? '/usr/share/nginx/html' : 'dist');
 const port = Number(process.env.PORT || 8080);
 const apiPort = Number(process.env.LOCAL_API_PORT || 46123);
 

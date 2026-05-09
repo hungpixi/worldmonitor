@@ -1,8 +1,6 @@
-# Railway relay build config (root_dir="" — builds from repo root).
-# Promotes scripts/nixpacks.toml settings here since nixpacks only reads
-# config from the build root. Adds scripts/ dep install so that packages
-# in scripts/package.json (e.g. @anthropic-ai/sdk, fast-xml-parser) are
-# available at runtime when node scripts/ais-relay.cjs is started.
+# Dokploy web build config.
+# Builds the Vite dashboard plus bundled API handlers, then starts the
+# lightweight Node static/API proxy in docker/dokploy-server.mjs.
 
 [phases.setup]
 # aptPkgs = ["curl"]  — disabled; NIXPACKS' apt wrapper runs
@@ -15,12 +13,15 @@ cmds = ["sudo apt-get update -o Acquire::AllowInsecureRepositories=false || true
 
 [variables]
 NODE_OPTIONS = "--dns-result-order=ipv4first"
+NODE_ENV = "production"
+PORT = "8080"
+STATIC_ROOT = "dist"
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --ignore-scripts"]
 
 [phases.build]
-cmds = ["npm install", "npm install --prefix scripts"]
+cmds = ["node docker/build-handlers.mjs", "npx tsc", "npx vite build"]
 
 [start]
-cmd = "node scripts/ais-relay.cjs"
+cmd = "node docker/dokploy-server.mjs"
