@@ -7,7 +7,11 @@ const root = process.env.STATIC_ROOT || (existsSync('/usr/share/nginx/html') ? '
 const port = Number(process.env.PORT || 8080);
 const apiPort = Number(process.env.LOCAL_API_PORT || 46123);
 
-const api = spawn(process.execPath, ['/app/local-api-server.mjs'], {
+const apiEntry = existsSync('/app/local-api-server.mjs')
+  ? '/app/local-api-server.mjs'
+  : 'src-tauri/sidecar/local-api-server.mjs';
+
+const api = spawn(process.execPath, [apiEntry], {
   cwd: '/app',
   stdio: 'inherit',
   env: {
